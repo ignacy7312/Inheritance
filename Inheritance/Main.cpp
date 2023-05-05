@@ -59,7 +59,7 @@ public:
 			std::cout << other.GetName() << " is already DEAD!\n";
 		}
 	}
-	void Tick()
+	virtual void Tick()
 	{
 		if (IsAlive()) {
 			int amt = Roll(1);
@@ -68,7 +68,7 @@ public:
 		}
 	}
 	virtual void SpecialMove(MemeFighter&) = 0 {}
-	virtual ~MemeFighter();
+	virtual ~MemeFighter(){}
 
 protected:
 	MemeFighter(const std::string& name, int hp, int speed, int power)
@@ -109,7 +109,7 @@ public:
 		:
 		MemeFighter(name, 69, 7, 14)
 	{}
-
+	~MemeFrog(){}
 	void SpecialMove(MemeFighter& target) override  
 	{
 		if (IsAlive() && target.IsAlive()) {
@@ -123,7 +123,7 @@ public:
 			}
 		}
 	}
-	void Tick()
+	void Tick() override 
 	{
 		if (IsAlive())
 		{
@@ -141,6 +141,7 @@ public:
 		:
 		MemeFighter(name, 80, 4, 10)
 	{}
+	~MemeStoner(){}
 	void SpecialMove(MemeFighter& target) override 
 	{
 		if (IsAlive()) 
