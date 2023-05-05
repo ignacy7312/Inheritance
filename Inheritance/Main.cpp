@@ -68,6 +68,7 @@ public:
 		}
 	}
 	virtual void SpecialMove(MemeFighter&) = 0 {}
+	virtual ~MemeFighter();
 
 protected:
 	MemeFighter(const std::string& name, int hp, int speed, int power)
