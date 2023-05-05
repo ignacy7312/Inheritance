@@ -59,7 +59,7 @@ public:
 		:
 		Weapon("fists", 0)
 	{}
-	int CalculateDamage(const Attributes& attr, Dice& d) const override
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const override
 	{
 
 		return attr.power + d.Roll(2);
@@ -74,7 +74,7 @@ public:
 		:
 		Weapon("knife", 2)
 	{}
-	int CalculateDamage(const Attributes& attr, Dice& d) const override
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const override
 	{
 
 		return attr.speed * 3 + d.Roll(3);
@@ -89,7 +89,7 @@ public:
 		:
 		Weapon("bat", 1)
 	{}
-	int CalculateDamage(const Attributes& attr, Dice& d) const override
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const override
 	{
 
 		return attr.power * 2 + d.Roll(1);
@@ -162,7 +162,8 @@ protected:
 	MemeFighter(const std::string& name, int hp, int speed, int power, Weapon* pWeapon = nullptr)
 		:
 		name(name),
-		attr({ hp,speed, power })
+		attr({ hp,speed, power }),
+		pWeapon(pWeapon)
 	{
 		std::cout << name << " enters the ring!\n";
 	}
