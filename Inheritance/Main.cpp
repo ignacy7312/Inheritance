@@ -3,6 +3,7 @@
 #include <conio.h>
 #include <random>
 #include <algorithm>
+#include <cassert>
 
 class Dice
 {
@@ -21,16 +22,84 @@ private:
 	std::mt19937 rng = std::mt19937(std::random_device{}());
 };
 
-class MemeFighter
+
+struct Attributes
 {
-protected:
-	std::string name;
 	int hp;
 	int speed;
 	int power;
-	
+};
+
+class Weapon
+{
+public:
+	Weapon(const std::string& name, int rank)
+		:
+		name(name),
+		rank(rank)
+	{}
+	const std::string& GetName() const
+	{
+		return name;
+	}
+	int GetRank() const
+	{
+		return rank;
+	}
+	virtual int CalculateDamage(const Attributes& attr, Dice& d) const = 0;
 private:
-	mutable Dice d;
+	std::string name;
+	int rank;
+};
+
+class Fists : public Weapon
+{
+public:
+	Fists()
+		:
+		Weapon("fists", 0)
+	{}
+	int CalculateDamage(const Attributes& attr, Dice& d) const override
+	{
+
+		return attr.power + d.Roll(2);
+	}
+
+};
+
+class Knife : public Weapon
+{
+public:
+	Knife()
+		:
+		Weapon("knife", 2)
+	{}
+	int CalculateDamage(const Attributes& attr, Dice& d) const override
+	{
+
+		return attr.speed * 3 + d.Roll(3);
+	}
+
+};
+
+class Bat : public Weapon
+{
+public:
+	Bat()
+		:
+		Weapon("bat", 1)
+	{}
+	int CalculateDamage(const Attributes& attr, Dice& d) const override
+	{
+
+		return attr.power * 2 + d.Roll(1);
+	}
+
+};
+
+class MemeFighter
+{
+
 public:
 	std::string GetName() const
 	{
@@ -38,45 +107,62 @@ public:
 	}
 	int GetHp() const
 	{
-		return hp;
+		return attr.hp;
 	}
 	int GetInitiative() const
 	{
-		return speed + Roll(2);
+		return attr.speed + Roll(2);
 	}
 	bool IsAlive() const
 	{
-		return (hp > 0);
+		return (attr.hp > 0);
 	}
-	void Punch(MemeFighter& other) const
+	void Attack(MemeFighter& other) const
 	{
 		if (other.IsAlive() && IsAlive()) {
-			int p = power + Roll(2);
-			other.DeleteHp(p);
-			std::cout << name << " punched " << other.GetName() << " for " << p << ". It has now " << other.GetHp() << " hp.\n";
+			//assert(pWeapon != nullptr);
+
+			ApplyDamageTo(other, pWeapon->CalculateDamage(attr, d));
+			std::cout << name << " attacks " << other.GetName() << " with his " << pWeapon->GetName() << " for " << ".It has now " << other.GetHp() << " hp.\n";
 		}
 		else {
 			std::cout << other.GetName() << " is already DEAD!\n";
 		}
 	}
+	const Attributes& GetAttributes() const
+	{
+		return attr;
+	}
 	virtual void Tick()
 	{
 		if (IsAlive()) {
 			int amt = Roll(1);
-			hp += amt;
-			std::cout << name << " restored " << amt << "!!! Has now " << hp << "\n";
+			attr.hp += amt;
+			std::cout << name << " restored " << amt << "!!! Has now " << attr.hp << "\n";
 		}
 	}
 	virtual void SpecialMove(MemeFighter&) = 0 {}
-	virtual ~MemeFighter(){}
+	virtual ~MemeFighter() 
+	{
+		delete pWeapon;
+	}
+	void GiveWeapon(Weapon* pNewWeapon)
+	{
+		delete pWeapon;
+		pWeapon = pNewWeapon;
+	}
+	Weapon* PilferWeapon()
+	{
+		auto pWep = pWeapon;
+		pWeapon = nullptr;
+		return pWep;
+	}
 
 protected:
-	MemeFighter(const std::string& name, int hp, int speed, int power)
+	MemeFighter(const std::string& name, int hp, int speed, int power, Weapon* pWeapon = nullptr)
 		:
 		name(name),
-		hp(hp),
-		speed(speed),
-		power(power)
+		attr({ hp,speed, power })
 	{
 		std::cout << name << " enters the ring!\n";
 	}
@@ -84,13 +170,10 @@ protected:
 	{
 		return d.Roll(nDice);
 	}
-	void DeleteHp(int amt)
-	{
-		hp -= amt;
-	}
 	void ApplyDamageTo(MemeFighter& target, int dmg) const
 	{
-		target.hp -= dmg;
+		target.attr.hp -= dmg;
+
 		std::cout << target.name << " takes " << dmg << " damage.\n";
 		if (!target.IsAlive())
 		{
@@ -98,6 +181,13 @@ protected:
 		}
 	}
 
+protected:
+	std::string name;
+	Attributes attr;
+
+private:
+	mutable Dice d;
+	Weapon* pWeapon = nullptr;
 
 };
 
@@ -105,9 +195,9 @@ protected:
 class MemeFrog : public MemeFighter
 {
 public:
-	MemeFrog(const std::string& name)
+	MemeFrog(const std::string& name, Weapon* pWeapon = nullptr)
 		:
-		MemeFighter(name, 69, 7, 14)
+		MemeFighter(name, 69, 7, 14, pWeapon)
 	{}
 	~MemeFrog(){}
 	void SpecialMove(MemeFighter& target) override  
@@ -137,9 +227,9 @@ public:
 class MemeStoner : public MemeFighter
 {
 public:
-	MemeStoner(const std::string& name)
+	MemeStoner(const std::string& name, Weapon* pWeapon = nullptr)
 		:
-		MemeFighter(name, 80, 4, 10)
+		MemeFighter(name, 80, 4, 10, pWeapon)
 	{}
 	~MemeStoner(){}
 	void SpecialMove(MemeFighter& target) override 
@@ -149,10 +239,10 @@ public:
 			if (Roll() % 2 == 0) 
 			{
 				name += "Super";
-				hp += 10;
-				speed += 3;
-				power = power * 69 / 42;
-				std::cout << name << " special moved!!!! It has now " << hp << " hp " << " power " << power << " speed " << speed << "!!!!\n";
+				attr.hp += 10;
+				attr.speed += 3;
+				attr.power = attr.power * 69 / 42;
+				std::cout << name << " special moved!!!! It has now " << attr.hp << " hp " << " power " << attr.power << " speed " << attr.speed << "!!!!\n";
 			}
 			else {
 				std::cout << "Special Move didn't work for " << name << "!!\n";
@@ -174,8 +264,8 @@ void Engage( MemeFighter& f1,MemeFighter& f2 )
 		std::swap( p1,p2 );
 	}
 	// execute attacks
-	p1->Punch( *p2 );
-	p2->Punch( *p1 );
+	p1->Attack( *p2 );
+	p2->Attack( *p1 );
 }
 
 void DoSpecials(MemeFighter& f1, MemeFighter& f2)
@@ -195,17 +285,17 @@ void DoSpecials(MemeFighter& f1, MemeFighter& f2)
 int main()
 {
 	std::vector<MemeFighter*> t1 = {
-		new MemeFrog("Dat Boi"),
-		new MemeStoner("Good Guy Greg"),
-		new MemeFrog("the WB Frog")
+		new MemeFrog("Dat Boi", new Fists),
+		new MemeStoner("Good Guy Greg", new Bat),
+		new MemeFrog("the WB Frog", new Knife)
 	};
 	
 	std::vector<MemeFighter*> t2 = {
-		new MemeStoner("Chong"),
-		new MemeStoner("Scumbag Steve"),
-		new MemeFrog("Pepe")
+		new MemeStoner("Chong", new Fists),
+		new MemeStoner("Scumbag Steve", new Bat),
+		new MemeFrog("Pepe", new Knife)
 	};
-
+	
 	const auto alive_pred = [](MemeFighter* pf) { return pf->IsAlive(); };
 	while (
 		std::any_of(t1.begin(), t1.end(), alive_pred) &&
@@ -215,12 +305,13 @@ int main()
 		std::partition(t1.begin(), t1.end(), alive_pred);
 		std::random_shuffle(t2.begin(), t2.end());
 		std::partition(t2.begin(), t2.end(), alive_pred);
-
 		for (size_t i = 0; i < t1.size(); i++)
 		{
+
 			Engage(*t1[i], *t2[i]);
 			DoSpecials(*t1[i], *t2[i]);
 			std::cout << "------------------------------------" << std::endl;
+
 		}
 		std::cout << "=====================================" << std::endl;
 
