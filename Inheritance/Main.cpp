@@ -4,6 +4,7 @@
 #include <random>
 #include <algorithm>
 #include <cassert>
+#include <memory>
 
 class Dice
 {
@@ -142,28 +143,21 @@ public:
 		}
 	}
 	virtual void SpecialMove(MemeFighter&) = 0 {}
-	virtual ~MemeFighter() 
+	void GiveWeapon(std::unique_ptr<Weapon> pNewWeapon)
 	{
-		delete pWeapon;
+		pWeapon = std::move(pNewWeapon);
 	}
-	void GiveWeapon(Weapon* pNewWeapon)
+	std::unique_ptr<Weapon> PilferWeapon()
 	{
-		delete pWeapon;
-		pWeapon = pNewWeapon;
-	}
-	Weapon* PilferWeapon()
-	{
-		auto pWep = pWeapon;
-		pWeapon = nullptr;
-		return pWep;
+		return std::move(pWeapon);
 	}
 
 protected:
-	MemeFighter(const std::string& name, int hp, int speed, int power, Weapon* pWeapon = nullptr)
+	MemeFighter(const std::string& name, int hp, int speed, int power, std::unique_ptr<Weapon> pWeapon)
 		:
 		name(name),
 		attr({ hp,speed, power }),
-		pWeapon(pWeapon)
+		pWeapon(std::move(pWeapon))
 	{
 		std::cout << name << " enters the ring!\n";
 	}
@@ -188,7 +182,7 @@ protected:
 
 private:
 	mutable Dice d;
-	Weapon* pWeapon = nullptr;
+	std::unique_ptr<Weapon> pWeapon;
 
 };
 
@@ -196,7 +190,7 @@ private:
 class MemeFrog : public MemeFighter
 {
 public:
-	MemeFrog(const std::string& name, Weapon* pWeapon = nullptr)
+	MemeFrog(const std::string& name, std::unique_ptr<Weapon> pWeapon)
 		:
 		MemeFighter(name, 69, 7, 14, pWeapon)
 	{}
@@ -228,7 +222,7 @@ public:
 class MemeStoner : public MemeFighter
 {
 public:
-	MemeStoner(const std::string& name, Weapon* pWeapon = nullptr)
+	MemeStoner(const std::string& name, std::unique_ptr<Weapon> pWeapon)
 		:
 		MemeFighter(name, 80, 4, 10, pWeapon)
 	{}
@@ -285,19 +279,18 @@ void DoSpecials(MemeFighter& f1, MemeFighter& f2)
 
 int main()
 {
-	std::vector<MemeFighter*> t1 = {
-		new MemeFrog("Dat Boi", new Fists),
-		new MemeStoner("Good Guy Greg", new Bat),
-		new MemeFrog("the WB Frog", new Knife)
-	};
+	std::vector<std::unique_ptr<MemeFighter>> t1;
+	t1.push_back(std::make_unique<MemeFrog>("Dat Boi", new Fists));
+	t1.push_back(std::make_unique<MemeStoner>("Good Guy Greg", new Bat));
+	t1.push_back(std::make_unique<MemeFrog>("the WB Frog", new Knife));
+
+	std::vector<std::unique_ptr<MemeFighter>> t2;
+	t2.push_back(std::make_unique<MemeStoner>("Chong", new Fists));
+	t2.push_back(std::make_unique<MemeStoner>("Scumbag Steve", new Bat));
+	t2.push_back(std::make_unique<MemeFrog>("Pepe", new Knife));
+
 	
-	std::vector<MemeFighter*> t2 = {
-		new MemeStoner("Chong", new Fists),
-		new MemeStoner("Scumbag Steve", new Bat),
-		new MemeFrog("Pepe", new Knife)
-	};
-	
-	const auto alive_pred = [](MemeFighter* pf) { return pf->IsAlive(); };
+	const auto alive_pred = [](const std::unique_ptr<MemeFighter>& pf) { return pf->IsAlive(); };
 	while (
 		std::any_of(t1.begin(), t1.end(), alive_pred) &&
 		std::any_of(t2.begin(), t2.end(), alive_pred))
@@ -339,11 +332,6 @@ int main()
 	}
 	while (!_kbhit());
 
-	for (size_t i = 0; i < t1.size(); i++)
-	{
-		delete t1[i];
-		delete t2[i];
-	}
 
 	return 0;
 }
